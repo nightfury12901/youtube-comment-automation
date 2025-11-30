@@ -1,0 +1,4 @@
+﻿node_modules/
+user_sessions/
+credentials.json
+.env
