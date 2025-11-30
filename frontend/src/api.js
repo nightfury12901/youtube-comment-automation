@@ -64,7 +64,7 @@ export const estimateQuota = async (numComments) => {
 };
 
 // Export helper so App.js can store userId after login
-export const setUserId = (userId) => {
+export const storeUserId = (userId) => {
   if (userId) {
     localStorage.setItem('yca_user_id', userId);
   } else {
@@ -72,4 +72,6 @@ export const setUserId = (userId) => {
   }
 };
 
-export const getStoredUserId = getUserId;
+export const getStoredUserId = () => {
+  return localStorage.getItem('yca_user_id') || null;
+};
