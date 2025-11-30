@@ -1,35 +1,15 @@
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
 const { google } = require('googleapis');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// In‑memory token store
+// In‑memory token store: userId -> tokens
 const tokenStore = {};
 
-// TRUST RENDER'S PROXY (critical for sessions to work)
-app.set('trust proxy', 1);
-
-// SESSION
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-12345',
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000
-    }
-  })
-);
-
-// FRONTEND URL
+// FRONTEND URL (Vercel frontend)
 const FRONTEND_URL =
   process.env.FRONTEND_URL ||
   'https://youtube-comment-automation.vercel.app';
@@ -66,20 +46,21 @@ function getYouTubeClient(tokens) {
   return google.youtube({ version: 'v3', auth: oauth2Client });
 }
 
-// AUTH STATUS
+// AUTH STATUS (checks userId from header)
 app.get('/api/auth/status', (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.header('x-user-id');
   if (userId && loadCredentials(userId)) {
     return res.json({ authenticated: true, user_id: userId });
   }
   return res.json({ authenticated: false });
 });
 
-// LOGIN
+// LOGIN: generate state and redirect user to Google
+const stateStore = {};
+
 app.get('/api/auth/login', (req, res) => {
-  const userId =
-    req.session.userId || Math.random().toString(36).substring(2, 15);
-  req.session.userId = userId;
+  const state = Math.random().toString(36).substring(2, 15);
+  stateStore[state] = true;
 
   const redirectUri = `https://${req.get('host')}/api/auth/callback`;
   const oauth2Client = getOAuth2Client(redirectUri);
@@ -87,25 +68,38 @@ app.get('/api/auth/login', (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
-    prompt: 'consent'
+    prompt: 'consent',
+    state
   });
 
   res.json({ auth_url: authUrl });
 });
 
-// CALLBACK
+// CALLBACK: exchange code, create userId, redirect back with ?user=
 app.get('/api/auth/callback', async (req, res) => {
   try {
+    const { code, state } = req.query;
+
+    if (!state || !stateStore[state]) {
+      return res.redirect(
+        `${FRONTEND_URL}?login=error&message=${encodeURIComponent(
+          'Invalid state'
+        )}`
+      );
+    }
+    delete stateStore[state];
+
     const redirectUri = `https://${req.get('host')}/api/auth/callback`;
     const oauth2Client = getOAuth2Client(redirectUri);
 
-    console.log('Got code:', req.query.code);
-    const { tokens } = await oauth2Client.getToken(req.query.code);
+    console.log('Got code:', code);
+    const { tokens } = await oauth2Client.getToken(code);
     console.log('Tokens:', tokens);
 
-    saveCredentials(req.session.userId, tokens);
+    const userId = Math.random().toString(36).substring(2, 15);
+    saveCredentials(userId, tokens);
 
-    return res.redirect(`${FRONTEND_URL}?login=success`);
+    return res.redirect(`${FRONTEND_URL}?login=success&user=${userId}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
     return res.redirect(
@@ -116,24 +110,35 @@ app.get('/api/auth/callback', async (req, res) => {
   }
 });
 
-// LOGOUT
+// LOGOUT: forget tokens for this userId
 app.post('/api/auth/logout', (req, res) => {
-  const userId = req.session.userId;
-  if (userId) {
+  const userId = req.header('x-user-id');
+  if (userId && tokenStore[userId]) {
     delete tokenStore[userId];
   }
-  req.session.destroy(() => {
-    res.json({ success: true });
-  });
+  res.json({ success: true });
 });
+
+// Helper: get tokens from header
+function requireUserTokens(req, res) {
+  const userId = req.header('x-user-id');
+  if (!userId) {
+    res.status(401).json({ error: 'Missing user id' });
+    return null;
+  }
+  const tokens = loadCredentials(userId);
+  if (!tokens) {
+    res.status(401).json({ error: 'Invalid user id or expired session' });
+    return null;
+  }
+  return { userId, tokens };
+}
 
 // FETCH COMMENTS
 app.post('/api/comments/fetch', async (req, res) => {
-  const userId = req.session.userId;
-  if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-
-  const tokens = loadCredentials(userId);
-  if (!tokens) return res.status(401).json({ error: 'Invalid credentials' });
+  const user = requireUserTokens(req, res);
+  if (!user) return;
+  const { tokens } = user;
 
   const { video_id } = req.body;
   if (!video_id) return res.status(400).json({ error: 'video_id required' });
@@ -217,11 +222,9 @@ app.post('/api/comments/fetch', async (req, res) => {
 
 // REPLY TO COMMENTS
 app.post('/api/comments/reply', async (req, res) => {
-  const userId = req.session.userId;
-  if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-
-  const tokens = loadCredentials(userId);
-  if (!tokens) return res.status(401).json({ error: 'Invalid credentials' });
+  const user = requireUserTokens(req, res);
+  if (!user) return;
+  const { tokens } = user;
 
   const { comments, reply_presets } = req.body;
   if (!comments || !reply_presets) {
