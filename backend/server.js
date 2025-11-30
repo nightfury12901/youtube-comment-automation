@@ -19,17 +19,21 @@ app.use(
   })
 );
 
+// IMPORTANT: set FRONTEND_URL in Vercel env to https://youtube-comment-automation.vercel.app
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 app.use(
   cors({
     origin: FRONTEND_URL,
     credentials: true
   })
 );
+
 app.use(express.json());
 
 const SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
-const CREDENTIALS = JSON.parse(process.env.GOOGLE_CREDENTIALS); // full JSON in env
+// GOOGLE_CREDENTIALS must be full credentials.json JSON string in env
+const CREDENTIALS = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 
 function getOAuth2Client(redirectUri) {
   const { client_id, client_secret } = CREDENTIALS.web || CREDENTIALS.installed;
@@ -61,7 +65,8 @@ app.get('/api/auth/status', (req, res) => {
 
 // LOGIN
 app.get('/api/auth/login', (req, res) => {
-  const userId = req.session.userId || Math.random().toString(36).substring(2, 15);
+  const userId =
+    req.session.userId || Math.random().toString(36).substring(2, 15);
   req.session.userId = userId;
 
   const redirectUri = `https://${req.get('host')}/api/auth/callback`;
@@ -82,13 +87,19 @@ app.get('/api/auth/callback', async (req, res) => {
     const redirectUri = `https://${req.get('host')}/api/auth/callback`;
     const oauth2Client = getOAuth2Client(redirectUri);
 
+    console.log('Got code:', req.query.code);
     const { tokens } = await oauth2Client.getToken(req.query.code);
+    console.log('Tokens:', tokens);
+
     saveCredentials(req.session.userId, tokens);
 
     return res.redirect(`${FRONTEND_URL}?login=success`);
   } catch (error) {
+    console.error('OAuth callback error:', error);
     return res.redirect(
-      `${FRONTEND_URL}?login=error&message=${encodeURIComponent(error.message)}`
+      `${FRONTEND_URL}?login=error&message=${encodeURIComponent(
+        error.message
+      )}`
     );
   }
 });
@@ -129,7 +140,10 @@ app.post('/api/comments/fetch', async (req, res) => {
 
     const videoItem = videoResponse.data.items[0];
     const channelId = videoItem.snippet.channelId;
-    const totalCommentCount = parseInt(videoItem.statistics.commentCount || '0', 10);
+    const totalCommentCount = parseInt(
+      videoItem.statistics.commentCount || '0',
+      10
+    );
 
     const comments = [];
     let nextPageToken = null;
@@ -205,7 +219,12 @@ app.post('/api/comments/reply', async (req, res) => {
   }
 
   const youtube = getYouTubeClient(tokens);
-  const results = { total: comments.length, successful: 0, failed: 0, errors: [] };
+  const results = {
+    total: comments.length,
+    successful: 0,
+    failed: 0,
+    errors: []
+  };
 
   for (const comment of comments) {
     try {
