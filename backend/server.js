@@ -7,24 +7,29 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// In‑memory token store (per deployment; fine for testing/demo)
+// In‑memory token store
 const tokenStore = {};
 
-// SESSION (simple, like localhost – Render uses one domain)
+// TRUST RENDER'S PROXY (critical for sessions to work)
+app.set('trust proxy', 1);
+
+// SESSION
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-12345',
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-      secure: false,          // ok behind Render's proxy
+      secure: true,
       httpOnly: true,
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
 
-// FRONTEND URL (Vercel frontend)
+// FRONTEND URL
 const FRONTEND_URL =
   process.env.FRONTEND_URL ||
   'https://youtube-comment-automation.vercel.app';
@@ -40,7 +45,6 @@ app.use(
 app.use(express.json());
 
 const SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
-// GOOGLE_CREDENTIALS = full credentials.json as a single JSON string in env
 const CREDENTIALS = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 
 function getOAuth2Client(redirectUri) {
@@ -77,7 +81,6 @@ app.get('/api/auth/login', (req, res) => {
     req.session.userId || Math.random().toString(36).substring(2, 15);
   req.session.userId = userId;
 
-  // Force https so it matches Google OAuth config
   const redirectUri = `https://${req.get('host')}/api/auth/callback`;
   const oauth2Client = getOAuth2Client(redirectUri);
 
@@ -93,7 +96,6 @@ app.get('/api/auth/login', (req, res) => {
 // CALLBACK
 app.get('/api/auth/callback', async (req, res) => {
   try {
-    // Must match the same https URI used above
     const redirectUri = `https://${req.get('host')}/api/auth/callback`;
     const oauth2Client = getOAuth2Client(redirectUri);
 
