@@ -5,12 +5,15 @@ import {
   logout,
   fetchComments,
   replyToComments,
-  estimateQuota
+  estimateQuota,
+  storeUserId,
+  getStoredUserId
 } from './api';
 import './styles.css';
 
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [userId, setUserIdState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoId, setVideoId] = useState('');
   const [comments, setComments] = useState([]);
@@ -28,12 +31,30 @@ function App() {
   const [quotaEstimate, setQuotaEstimate] = useState(null);
   const [progress, setProgress] = useState(0);
 
+  // Helper to sync userId with localStorage via api.js
+  const setUserId = (id) => {
+    setUserIdState(id);
+    storeUserId(id);
+  };
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const loginStatus = urlParams.get('login');
-    if (loginStatus) {
+    const userFromUrl = urlParams.get('user');
+
+    if (loginStatus === 'success' && userFromUrl) {
+      setUserId(userFromUrl);
+    } else {
+      const stored = getStoredUserId();
+      if (stored) {
+        setUserIdState(stored);
+      }
+    }
+
+    if (loginStatus || userFromUrl) {
       window.history.replaceState({}, document.title, '/');
     }
+
     checkAuth();
   }, []);
 
@@ -47,6 +68,9 @@ function App() {
     try {
       const status = await checkAuthStatus();
       setAuthenticated(status.authenticated);
+      if (status.authenticated && status.user_id) {
+        setUserId(status.user_id);
+      }
     } catch (error) {
       console.error('Auth check failed:', error);
     }
@@ -65,6 +89,7 @@ function App() {
   const handleLogout = async () => {
     await logout();
     setAuthenticated(false);
+    setUserId(null);
     setComments([]);
     setResults(null);
     setVideoId('');
