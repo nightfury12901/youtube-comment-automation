@@ -10,18 +10,25 @@ const PORT = process.env.PORT || 5000;
 // In‑memory token store (per deployment; fine for testing)
 const tokenStore = {};
 
+// SESSION (cross-site, Vercel + frontend domain)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-12345',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
+    cookie: {
+      secure: true,          // Vercel = https
+      httpOnly: true,
+      sameSite: 'none',      // allow cross-site cookie
+      maxAge: 24 * 60 * 60 * 1000
+    }
   })
 );
 
-// IMPORTANT: set FRONTEND_URL in Vercel env to https://youtube-comment-automation.vercel.app
+// FRONTEND URL (already set on Vercel to https://youtube-comment-automation.vercel.app)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+// CORS
 app.use(
   cors({
     origin: FRONTEND_URL,
@@ -32,7 +39,7 @@ app.use(
 app.use(express.json());
 
 const SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
-// GOOGLE_CREDENTIALS must be full credentials.json JSON string in env
+// GOOGLE_CREDENTIALS = full credentials.json as a single JSON string in env
 const CREDENTIALS = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 
 function getOAuth2Client(redirectUri) {
