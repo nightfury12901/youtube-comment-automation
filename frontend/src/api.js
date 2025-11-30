@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-// Backend API base (Vercel)
-const API_BASE = 'https://youtube-comment-automation-m33n.vercel.app/api';
+// Backend API base (Render)
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  'https://youtube-comment-automation.onrender.com/api'; // replace with actual Render URL
 
-// Always send cookies (sessions) with requests
+// Send cookies for session
 axios.defaults.withCredentials = true;
 
 export const checkAuthStatus = async () => {
