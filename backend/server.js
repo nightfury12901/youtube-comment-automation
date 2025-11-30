@@ -7,26 +7,27 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// In‑memory token store (per deployment; fine for testing)
+// In‑memory token store (per deployment; fine for testing/demo)
 const tokenStore = {};
 
-// SESSION (cross-site, Vercel + frontend domain)
+// SESSION (simple, like localhost – Render uses one domain)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-12345',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,          // Vercel = https
+      secure: false,          // http on Render free tier, https via proxy is ok
       httpOnly: true,
-      sameSite: 'none',      // allow cross-site cookie
       maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
 
-// FRONTEND URL (already set on Vercel to https://youtube-comment-automation.vercel.app)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+// FRONTEND URL (Vercel frontend)
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ||
+  'https://youtube-comment-automation.vercel.app';
 
 // CORS
 app.use(
@@ -76,7 +77,7 @@ app.get('/api/auth/login', (req, res) => {
     req.session.userId || Math.random().toString(36).substring(2, 15);
   req.session.userId = userId;
 
-  const redirectUri = `https://${req.get('host')}/api/auth/callback`;
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/callback`;
   const oauth2Client = getOAuth2Client(redirectUri);
 
   const authUrl = oauth2Client.generateAuthUrl({
@@ -91,7 +92,7 @@ app.get('/api/auth/login', (req, res) => {
 // CALLBACK
 app.get('/api/auth/callback', async (req, res) => {
   try {
-    const redirectUri = `https://${req.get('host')}/api/auth/callback`;
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/callback`;
     const oauth2Client = getOAuth2Client(redirectUri);
 
     console.log('Got code:', req.query.code);
