@@ -17,7 +17,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,          // http on Render free tier, https via proxy is ok
+      secure: false,          // ok behind Render's proxy
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000
     }
@@ -77,7 +77,8 @@ app.get('/api/auth/login', (req, res) => {
     req.session.userId || Math.random().toString(36).substring(2, 15);
   req.session.userId = userId;
 
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/callback`;
+  // Force https so it matches Google OAuth config
+  const redirectUri = `https://${req.get('host')}/api/auth/callback`;
   const oauth2Client = getOAuth2Client(redirectUri);
 
   const authUrl = oauth2Client.generateAuthUrl({
@@ -92,7 +93,8 @@ app.get('/api/auth/login', (req, res) => {
 // CALLBACK
 app.get('/api/auth/callback', async (req, res) => {
   try {
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/callback`;
+    // Must match the same https URI used above
+    const redirectUri = `https://${req.get('host')}/api/auth/callback`;
     const oauth2Client = getOAuth2Client(redirectUri);
 
     console.log('Got code:', req.query.code);
