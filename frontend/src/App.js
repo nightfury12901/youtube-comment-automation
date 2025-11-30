@@ -390,4 +390,86 @@ function App() {
               className="input"
             />
 
-            <div className="comment-stats">
+                        <div className="comment-stats">
+              <span className="stat-badge">
+                {selectedComments.length} selected
+              </span>
+              <span className="stat-badge">
+                {comments.filter((c) => !c.hasReply).length} unreplied
+              </span>
+            </div>
+
+            <div className="comment-list">
+              {filteredComments.map((comment) => {
+                const actualIdx = comments.indexOf(comment);
+                return (
+                  <div
+                    key={actualIdx}
+                    className={`comment-item ${
+                      selectedComments.includes(actualIdx) ? 'selected' : ''
+                    } ${comment.hasReply ? 'already-replied' : ''}`}
+                    onClick={() => toggleCommentSelection(actualIdx)}
+                  >
+                    <div className="checkbox">
+                      {selectedComments.includes(actualIdx) ? '☑' : '☐'}
+                    </div>
+                    <div className="comment-content">
+                      <strong>
+                        {comment.author}
+                        {comment.hasReply && ' ✓'}
+                        {comment.likeCount > 0 && ` ❤️ ${comment.likeCount}`}
+                      </strong>
+                      <p>
+                        {comment.text.substring(0, 200)}
+                        {comment.text.length > 200 ? '...' : ''}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {quotaEstimate && selectedComments.length > 0 && (
+              <div className="quota-info">
+                <p>
+                  📊 Estimated Quota:{' '}
+                  <strong>{quotaEstimate.total}</strong> units (
+                  {quotaEstimate.percentage}% of daily limit)
+                </p>
+              </div>
+            )}
+
+            {processing && (
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${progress}%` }}
+                >
+                  {progress}%
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleReply}
+              disabled={processing || selectedComments.length === 0}
+              className="btn btn-success"
+            >
+              {processing ? (
+                <>
+                  <div className="loading"></div>
+                  <span>Deploying...</span>
+                </>
+              ) : (
+                `🚀 Reply to ${selectedComments.length} Comments`
+              )}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default App;
+
