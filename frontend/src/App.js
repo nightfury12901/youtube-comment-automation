@@ -32,7 +32,6 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const loginStatus = urlParams.get('login');
     if (loginStatus) {
-      // Clean query params from URL
       window.history.replaceState({}, document.title, '/');
     }
     checkAuth();
@@ -70,6 +69,7 @@ function App() {
     setResults(null);
     setVideoId('');
     setSelectedComments([]);
+    setQuotaEstimate(null);
   };
 
   const handleFetchComments = async () => {
@@ -390,7 +390,7 @@ function App() {
               className="input"
             />
 
-                        <div className="comment-stats">
+            <div className="comment-stats">
               <span className="stat-badge">
                 {selectedComments.length} selected
               </span>
@@ -472,4 +472,3 @@ function App() {
 }
 
 export default App;
-
