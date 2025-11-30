@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-// Vercel backend URL
-const API_BASE =
-  process.env.REACT_APP_API_URL ||
-  'https://youtube-comment-automation-m33n.vercel.app/api'; // replace with your backend domain
+// Backend API base (Vercel)
+const API_BASE = 'https://youtube-comment-automation-m33n.vercel.app/api';
 
+// Always send cookies (sessions) with requests
 axios.defaults.withCredentials = true;
 
 export const checkAuthStatus = async () => {
@@ -24,7 +23,7 @@ export const logout = async () => {
 
 export const fetchComments = async (videoId) => {
   const response = await axios.post(`${API_BASE}/comments/fetch`, {
-    video_id: videoId,
+    video_id: videoId
   });
   return response.data;
 };
@@ -32,14 +31,14 @@ export const fetchComments = async (videoId) => {
 export const replyToComments = async (comments, replyPresets) => {
   const response = await axios.post(`${API_BASE}/comments/reply`, {
     comments,
-    reply_presets: replyPresets,
+    reply_presets: replyPresets
   });
   return response.data;
 };
 
 export const estimateQuota = async (numComments) => {
   const response = await axios.post(`${API_BASE}/quota/estimate`, {
-    num_comments: numComments,
+    num_comments: numComments
   });
   return response.data;
 };
