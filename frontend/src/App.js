@@ -9,13 +9,12 @@ import {
   storeUserId,
   getStoredUserId
 } from './api';
-
 import './styles.css';
 
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
-  const [userId, setUserIdState] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserIdState] = useState(null);
   const [videoId, setVideoId] = useState('');
   const [comments, setComments] = useState([]);
   const [totalComments, setTotalComments] = useState(0);
@@ -32,9 +31,7 @@ function App() {
   const [quotaEstimate, setQuotaEstimate] = useState(null);
   const [progress, setProgress] = useState(0);
 
-  // Helper to sync userId with localStorage via api.js
-  const [userId, setUserIdState] = useState(null);
-
+  // Sync userId with localStorage via api.js
   const setUserId = (id) => {
     setUserIdState(id);
     storeUserId(id);
