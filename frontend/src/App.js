@@ -33,6 +33,8 @@ function App() {
   const [progress, setProgress] = useState(0);
 
   // Helper to sync userId with localStorage via api.js
+  const [userId, setUserIdState] = useState(null);
+
   const setUserId = (id) => {
     setUserIdState(id);
     storeUserId(id);
