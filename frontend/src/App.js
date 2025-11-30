@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { checkAuthStatus, initiateLogin, logout, fetchComments, replyToComments, estimateQuota } from './api';
+import {
+  checkAuthStatus,
+  initiateLogin,
+  logout,
+  fetchComments,
+  replyToComments,
+  estimateQuota
+} from './api';
 import './styles.css';
 
 function App() {
@@ -22,12 +29,13 @@ function App() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    checkAuth();
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('login') === 'success') {
+    const loginStatus = urlParams.get('login');
+    if (loginStatus) {
+      // Clean query params from URL
       window.history.replaceState({}, document.title, '/');
-      checkAuth();
     }
+    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -69,9 +77,11 @@ function App() {
       alert('⚠️ Please enter a video ID');
       return;
     }
+
     setProcessing(true);
     setResults(null);
     setComments([]);
+
     try {
       const data = await fetchComments(videoId);
       if (data.quota_exceeded) {
@@ -80,7 +90,10 @@ function App() {
         setComments(data.comments);
         setTotalComments(data.total_count);
         setAlreadyReplied(data.already_replied);
-        const unrepliedIndexes = data.comments.map((comment, idx) => comment.hasReply ? null : idx).filter(idx => idx !== null);
+
+        const unrepliedIndexes = data.comments
+          .map((comment, idx) => (comment.hasReply ? null : idx))
+          .filter((idx) => idx !== null);
         setSelectedComments(unrepliedIndexes);
       } else {
         alert('❌ Error: ' + data.error);
@@ -88,6 +101,7 @@ function App() {
     } catch (error) {
       alert('❌ Failed to fetch comments: ' + error.message);
     }
+
     setProcessing(false);
   };
 
@@ -101,24 +115,34 @@ function App() {
   };
 
   const handleReply = async () => {
-    const commentsToReply = selectedComments.map(idx => comments[idx]);
+    const commentsToReply = selectedComments.map((idx) => comments[idx]);
+
     if (commentsToReply.length === 0) {
       alert('⚠️ No comments selected');
       return;
     }
-    const validPresets = replyPresets.filter(p => p.trim());
+
+    const validPresets = replyPresets.filter((p) => p.trim());
     if (validPresets.length < 2) {
       alert('⚠️ Please provide at least 2 reply presets');
       return;
     }
-    if (!window.confirm(`🚀 Reply to ${commentsToReply.length} comments?`)) {
+
+    if (
+      !window.confirm(
+        `🚀 Reply to ${commentsToReply.length} comments with ${validPresets.length} presets?`
+      )
+    ) {
       return;
     }
+
     setProcessing(true);
     setProgress(0);
+
     const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 5, 95));
+      setProgress((prev) => Math.min(prev + 5, 95));
     }, 300);
+
     try {
       const data = await replyToComments(commentsToReply, validPresets);
       clearInterval(progressInterval);
@@ -128,6 +152,7 @@ function App() {
       clearInterval(progressInterval);
       alert('❌ Failed to reply: ' + error.message);
     }
+
     setProcessing(false);
   };
 
@@ -159,7 +184,7 @@ function App() {
 
   const toggleCommentSelection = (index) => {
     if (selectedComments.includes(index)) {
-      setSelectedComments(selectedComments.filter(i => i !== index));
+      setSelectedComments(selectedComments.filter((i) => i !== index));
     } else {
       setSelectedComments([...selectedComments, index]);
     }
@@ -169,14 +194,15 @@ function App() {
     if (selectedComments.length === filteredComments.length) {
       setSelectedComments([]);
     } else {
-      const allIndexes = filteredComments.map((_, idx) => comments.indexOf(filteredComments[idx]));
+      const allIndexes = filteredComments.map((c) => comments.indexOf(c));
       setSelectedComments(allIndexes);
     }
   };
 
-  const filteredComments = comments.filter(comment =>
-    comment.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    comment.author.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredComments = comments.filter(
+    (comment) =>
+      comment.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      comment.author.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -196,6 +222,7 @@ function App() {
         <div className="card welcome-card">
           <h1>🎥 YOUTUBE COMMENT AUTOMATION</h1>
           <p>Automate your YouTube comment replies with ease</p>
+
           <div className="features">
             <div className="feature-item">
               <h3>🔐 SECURE</h3>
@@ -214,10 +241,20 @@ function App() {
               <p>Randomized personalized replies</p>
             </div>
           </div>
+
           <button onClick={handleLogin} className="btn btn-primary">
             <span>🚀 LOGIN WITH YOUTUBE</span>
           </button>
-          <p style={{marginTop: '30px', color: '#999', fontSize: '14px'}}>Beta Version • Built for Creators</p>
+
+          <p
+            style={{
+              marginTop: '30px',
+              color: '#999',
+              fontSize: '14px'
+            }}
+          >
+            Beta Version • Built for Creators
+          </p>
         </div>
       </div>
     );
@@ -227,7 +264,9 @@ function App() {
     <div className="container">
       <div className="header">
         <h1>💬 COMMENT AUTOMATOR</h1>
-        <button onClick={handleLogout} className="btn btn-secondary btn-sm">LOGOUT</button>
+        <button onClick={handleLogout} className="btn btn-secondary btn-sm">
+          LOGOUT
+        </button>
       </div>
 
       {results && (
@@ -251,21 +290,51 @@ function App() {
             <details className="error-details">
               <summary>⚠️ VIEW ERRORS ({results.errors.length})</summary>
               {results.errors.map((err, idx) => (
-                <p key={idx} className="error-item">{err.error}</p>
+                <p key={idx} className="error-item">
+                  {err.error}
+                </p>
               ))}
             </details>
           )}
-          <button onClick={handleNewVideo} className="btn btn-primary" style={{marginTop: '20px'}}>🎬 Process New Video</button>
+          <button
+            onClick={handleNewVideo}
+            className="btn btn-primary"
+            style={{ marginTop: '20px' }}
+          >
+            🎬 Process New Video
+          </button>
         </div>
       )}
 
       <div className="card">
         <h2>📹 TARGET VIDEO</h2>
-        <input type="text" placeholder="Enter YouTube Video ID (e.g., dQw4w9WgXcQ)" value={videoId} onChange={(e) => setVideoId(e.target.value)} className="input" disabled={processing} />
-        <button onClick={handleFetchComments} disabled={processing} className="btn btn-primary">
-          {processing ? (<><div className="loading"></div><span>Fetching...</span></>) : '🔍 Fetch All Comments'}
+        <input
+          type="text"
+          placeholder="Enter YouTube Video ID (e.g., dQw4w9WgXcQ)"
+          value={videoId}
+          onChange={(e) => setVideoId(e.target.value)}
+          className="input"
+          disabled={processing}
+        />
+        <button
+          onClick={handleFetchComments}
+          disabled={processing}
+          className="btn btn-primary"
+        >
+          {processing ? (
+            <>
+              <div className="loading"></div>
+              <span>Fetching...</span>
+            </>
+          ) : (
+            '🔍 Fetch All Comments'
+          )}
         </button>
-        {totalComments > 0 && (<div className="info-text">📊 Total: {totalComments} | ✅ Already replied: {alreadyReplied}</div>)}
+        {totalComments > 0 && (
+          <div className="info-text">
+            📊 Total: {totalComments} | ✅ Already replied: {alreadyReplied}
+          </div>
+        )}
       </div>
 
       {comments.length > 0 && !results && (
@@ -273,59 +342,52 @@ function App() {
           <div className="card">
             <div className="preset-header">
               <h2>✏️ REPLY PRESETS ({replyPresets.length})</h2>
-              <button onClick={addPreset} className="btn btn-sm btn-add">+ Add</button>
+              <button onClick={addPreset} className="btn btn-sm btn-add">
+                + Add
+              </button>
             </div>
             {replyPresets.map((preset, index) => (
               <div key={index} className="preset-row">
-                <input type="text" value={preset} onChange={(e) => updatePreset(index, e.target.value)} placeholder={`Reply preset ${index + 1}`} className="input" />
-                <button onClick={() => removePreset(index)} className="btn-remove" disabled={replyPresets.length <= 2}>✕</button>
+                <input
+                  type="text"
+                  value={preset}
+                  onChange={(e) => updatePreset(index, e.target.value)}
+                  placeholder={`Reply preset ${index + 1}`}
+                  className="input"
+                />
+                <button
+                  onClick={() => removePreset(index)}
+                  className="btn-remove"
+                  disabled={replyPresets.length <= 2}
+                >
+                  ✕
+                </button>
               </div>
             ))}
-            <p className="info-text">💡 Replies will be randomly selected</p>
+            <p className="info-text">
+              💡 Replies will be randomly selected
+            </p>
           </div>
 
           <div className="card">
             <div className="comment-header">
               <h2>💬 COMMENTS ({filteredComments.length})</h2>
-              <button onClick={toggleSelectAll} className="btn btn-sm btn-secondary">{selectedComments.length === filteredComments.length ? 'Deselect All' : 'Select All'}</button>
+              <button
+                onClick={toggleSelectAll}
+                className="btn btn-sm btn-secondary"
+              >
+                {selectedComments.length === filteredComments.length
+                  ? 'Deselect All'
+                  : 'Select All'}
+              </button>
             </div>
-            <input type="text" placeholder="🔍 Search comments..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input" />
-            <div className="comment-stats">
-              <span className="stat-badge">{selectedComments.length} selected</span>
-              <span className="stat-badge">{comments.filter(c => !c.hasReply).length} unreplied</span>
-            </div>
-            <div className="comment-list">
-              {filteredComments.map((comment, displayIdx) => {
-                const actualIdx = comments.indexOf(comment);
-                return (
-                  <div key={actualIdx} className={`comment-item ${selectedComments.includes(actualIdx) ? 'selected' : ''} ${comment.hasReply ? 'already-replied' : ''}`} onClick={() => toggleCommentSelection(actualIdx)}>
-                    <div className="checkbox">{selectedComments.includes(actualIdx) ? '☑' : '☐'}</div>
-                    <div className="comment-content">
-                      <strong>{comment.author} {comment.hasReply && ' ✓'}{comment.likeCount > 0 && ` ❤️ ${comment.likeCount}`}</strong>
-                      <p>{comment.text.substring(0, 200)}{comment.text.length > 200 ? '...' : ''}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {quotaEstimate && selectedComments.length > 0 && (
-              <div className="quota-info">
-                <p>📊 Estimated Quota: <strong>{quotaEstimate.total}</strong> units ({quotaEstimate.percentage}% of daily limit)</p>
-              </div>
-            )}
-            {processing && (
-              <div className="progress-bar">
-                <div className="progress-fill" style={{width: `${progress}%`}}>{progress}%</div>
-              </div>
-            )}
-            <button onClick={handleReply} disabled={processing || selectedComments.length === 0} className="btn btn-success">
-              {processing ? (<><div className="loading"></div><span>Deploying...</span></>) : `🚀 Reply to ${selectedComments.length} Comments`}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
-export default App;
+            <input
+              type="text"
+              placeholder="🔍 Search comments..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input"
+            />
+
+            <div className="comment-stats">
