@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import {
   checkAuthStatus,
   initiateLogin,
@@ -9,9 +10,11 @@ import {
   storeUserId,
   getStoredUserId
 } from './api';
+import Terms from './Terms';
+import Privacy from './Privacy';
 import './styles.css';
 
-function App() {
+function MainApp() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userId, setUserIdState] = useState(null);
@@ -31,7 +34,6 @@ function App() {
   const [quotaEstimate, setQuotaEstimate] = useState(null);
   const [progress, setProgress] = useState(0);
 
-  // Sync userId with localStorage via api.js
   const setUserId = (id) => {
     setUserIdState(id);
     storeUserId(id);
@@ -245,8 +247,8 @@ function App() {
     return (
       <div className="container">
         <div className="card welcome-card">
-          <h1>🎥 YOUTUBE COMMENT AUTOMATION</h1>
-          <p>Automate your YouTube comment replies with ease</p>
+          <h1>🎥 COMMENT REPLY AUTOMATION</h1>
+          <p>Automate your comment replies with ease</p>
 
           <div className="features">
             <div className="feature-item">
@@ -268,7 +270,7 @@ function App() {
           </div>
 
           <button onClick={handleLogin} className="btn btn-primary">
-            <span>🚀 LOGIN WITH YOUTUBE</span>
+            <span>🚀 LOGIN WITH GOOGLE</span>
           </button>
 
           <p
@@ -280,6 +282,15 @@ function App() {
           >
             Beta Version • Built for Creators
           </p>
+
+          <div style={{ marginTop: '20px', fontSize: '12px' }}>
+            <Link to="/terms" style={{ color: '#666', marginRight: '20px' }}>
+              Terms of Service
+            </Link>
+            <Link to="/privacy" style={{ color: '#666' }}>
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -335,7 +346,7 @@ function App() {
         <h2>📹 TARGET VIDEO</h2>
         <input
           type="text"
-          placeholder="Enter YouTube Video ID (e.g., dQw4w9WgXcQ)"
+          placeholder="Enter Video ID (e.g., dQw4w9WgXcQ)"
           value={videoId}
           onChange={(e) => setVideoId(e.target.value)}
           className="input"
@@ -492,7 +503,36 @@ function App() {
           </div>
         </>
       )}
+
+      <div
+        style={{
+          textAlign: 'center',
+          marginTop: '40px',
+          paddingBottom: '20px',
+          fontSize: '12px',
+          color: '#666'
+        }}
+      >
+        <Link to="/terms" style={{ color: '#666', marginRight: '20px' }}>
+          Terms of Service
+        </Link>
+        <Link to="/privacy" style={{ color: '#666' }}>
+          Privacy Policy
+        </Link>
+      </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/" element={<MainApp />} />
+      </Routes>
+    </Router>
   );
 }
 
