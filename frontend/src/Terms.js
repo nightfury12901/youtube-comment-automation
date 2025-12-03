@@ -77,7 +77,7 @@ function Terms() {
         <h2>7. Contact</h2>
         <p>
           If you have any questions about these Terms, please contact us at:{' '}
-          <a href="mailto:YOUR_EMAIL@gmail.com">YOUR_EMAIL@gmail.com</a>
+          <a href="mailto:claudekaaccoun@gmail.com">claudekaaccoun@gmail.com</a>
         </p>
 
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
